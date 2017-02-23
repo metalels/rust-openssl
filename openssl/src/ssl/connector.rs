@@ -2,7 +2,7 @@ use std::io::{Read, Write};
 
 use dh::Dh;
 use error::ErrorStack;
-use ssl::{self, SslMethod, SslContextBuilder, SslContext, Ssl, SSL_VERIFY_PEER, SslStream,
+use ssl::{self, SslMethod, SslContextBuilder, SslContext, Ssl, SSL_VERIFY_PEER, SslStream, SslVerifyMode,
           HandshakeError};
 use pkey::PKeyRef;
 use x509::X509Ref;
@@ -73,6 +73,13 @@ impl SslConnectorBuilder {
     /// Consumes the builder, returning a `SslConnector`.
     pub fn build(self) -> SslConnector {
         SslConnector(self.0.build())
+    }
+
+    pub fn new_with_ssl_mode(method: SslMethod, ssl_mode: SslVerifyMode) -> Result<SslConnectorBuilder, ErrorStack> {
+      let mut ctx = try!(ctx(method));
+      ctx.set_verify(ssl_mode);
+
+      Ok(SslConnectorBuilder(ctx))
     }
 }
 
@@ -266,7 +273,7 @@ impl SslAcceptor {
 fn setup_verify(ssl: &mut Ssl, domain: &str) -> Result<(), ErrorStack> {
     // pass a noop closure in here to ensure that we consistently override any callback on the
     // context
-    ssl.set_verify_callback(SSL_VERIFY_PEER, |p, _| p);
+    //ssl.set_verify_callback(SSL_VERIFY_PEER, |p, _| p);
     let param = ssl._param_mut();
     param.set_hostflags(::verify::X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
     param.set_host(domain)
@@ -275,8 +282,8 @@ fn setup_verify(ssl: &mut Ssl, domain: &str) -> Result<(), ErrorStack> {
 #[cfg(ossl101)]
 fn setup_verify(ssl: &mut Ssl, domain: &str) -> Result<(), ErrorStack> {
     let domain = domain.to_owned();
-    ssl.set_verify_callback(SSL_VERIFY_PEER,
-                            move |p, x| verify::verify_callback(&domain, p, x));
+    //ssl.set_verify_callback(SSL_VERIFY_PEER, move |p, x| verify::verify_callback(&domain, p, x));
+    //                        move |p, x| verify::verify_callback(&domain, p, x));
     Ok(())
 }
 
